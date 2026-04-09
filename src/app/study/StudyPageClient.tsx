@@ -1,136 +1,186 @@
 'use client';
 
-import { useState, useMemo, useCallback, useRef } from 'react';
-import { Plus, X } from 'lucide-react';
-import StudyLogForm from '@/components/study/StudyLogForm';
-import StudyLogList from '@/components/study/StudyLogList';
-import ProgressCharts from '@/components/study/ProgressCharts';
-import { deleteStudyLog } from '@/lib/study-logs';
-import type { StudyLog } from '@/lib/study-logs';
+import { useState, useMemo } from 'react';
+import type { StudyLog, ProgressStats } from '@/types/study-log';
+import { CreateLogForm } from './components/CreateLogForm';
+import { StudyLogList } from './components/StudyLogList';
+import { ProgressCharts } from './components/ProgressCharts';
+import { FreeTierBanner } from './components/FreeTierBanner';
 
 interface StudyPageClientProps {
   initialLogs: StudyLog[];
-  userId: string;
-  isLimitReached: boolean;
+  initialCount: number;
+  progressStats: ProgressStats;
+  subscriptionTier: string;
 }
 
-export default function StudyPageClient({
+export function StudyPageClient({
   initialLogs,
-  userId: _userId,
-  isLimitReached,
+  initialCount,
+  subscriptionTier,
 }: StudyPageClientProps) {
   const [logs, setLogs] = useState<StudyLog[]>(initialLogs);
-  const [editingLog, setEditingLog] = useState<StudyLog | null>(null);
-  const [showMobileForm, setShowMobileForm] = useState(false);
-  const formRef = useRef<HTMLDivElement>(null);
+  const [count, setCount] = useState<number>(initialCount);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const subjects = useMemo(
-    () => Array.from(new Set(logs.map((l) => l.subject))).sort(),
-    [logs]
-  );
+  const FREE_TIER_LIMIT = 500;
 
-  const handleLogCreated = useCallback((log: StudyLog) => {
+  function handleCreateSuccess(log: StudyLog) {
     setLogs((prev) => [log, ...prev]);
-    setShowMobileForm(false);
-  }, []);
+    setCount((prev) => prev + 1);
+    setShowCreateForm(false);
+  }
 
-  const handleLogUpdated = useCallback((log: StudyLog) => {
-    setLogs((prev) => prev.map((l) => (l.id === log.id ? log : l)));
-    setEditingLog(null);
-  }, []);
+  function handleUpdateSuccess(updated: StudyLog) {
+    setLogs((prev) =>
+      prev.map((l) => (l.id === updated.id ? updated : l))
+    );
+    setEditingId(null);
+  }
 
-  const handleDeleteLog = useCallback(async (id: string) => {
-    await deleteStudyLog(id);
+  function handleDelete(id: string) {
     setLogs((prev) => prev.filter((l) => l.id !== id));
-  }, []);
+    setCount((prev) => Math.max(0, prev - 1));
+  }
 
-  const handleEdit = useCallback((log: StudyLog) => {
-    setEditingLog(log);
-    setShowMobileForm(true);
-    // Scroll to form on mobile
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
-  }, []);
+  // Recompute stats from local logs state
+  const liveStats = useMemo<ProgressStats>(() => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
 
-  const handleCancelEdit = useCallback(() => {
-    setEditingLog(null);
-    setShowMobileForm(false);
-  }, []);
-
-  const handleFormSuccess = useCallback(
-    (log: StudyLog) => {
-      if (editingLog) {
-        handleLogUpdated(log);
-      } else {
-        handleLogCreated(log);
+    // Daily hours (last 30 days)
+    const dailyMap: Record<string, number> = {};
+    for (const log of logs) {
+      const logDate = new Date(log.created_at);
+      if (logDate >= thirtyDaysAgo) {
+        const dateStr = logDate.toLocaleDateString('en-CA');
+        dailyMap[dateStr] = (dailyMap[dateStr] ?? 0) + log.duration_minutes;
       }
-    },
-    [editingLog, handleLogCreated, handleLogUpdated]
-  );
+    }
+
+    const dailyHours: { date: string; hours: number }[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toLocaleDateString('en-CA');
+      dailyHours.push({
+        date: dateStr,
+        hours: Math.round(((dailyMap[dateStr] ?? 0) / 60) * 100) / 100,
+      });
+    }
+
+    // Subject breakdown
+    const subjectMinuteMap: Record<string, number> = {};
+    for (const log of logs) {
+      subjectMinuteMap[log.subject] =
+        (subjectMinuteMap[log.subject] ?? 0) + log.duration_minutes;
+    }
+    const totalMinutes = Object.values(subjectMinuteMap).reduce(
+      (a, b) => a + b,
+      0
+    );
+    const subjectBreakdown = Object.entries(subjectMinuteMap)
+      .map(([subject, minutes]) => ({
+        subject,
+        minutes,
+        percentage: totalMinutes > 0 ? (minutes / totalMinutes) * 100 : 0,
+      }))
+      .sort((a, b) => b.minutes - a.minutes)
+      .slice(0, 10);
+
+    // Task completion rate
+    const taskMap: Record<string, number> = {};
+    for (const log of logs) {
+      taskMap[log.subject] =
+        (taskMap[log.subject] ?? 0) + log.tasks_completed;
+    }
+    const taskCompletionRate = Object.entries(taskMap)
+      .map(([subject, total_tasks]) => ({ subject, total_tasks }))
+      .sort((a, b) => b.total_tasks - a.total_tasks);
+
+    const totalTasks = Object.values(taskMap).reduce((a, b) => a + b, 0);
+
+    return {
+      dailyHours,
+      subjectBreakdown,
+      taskCompletionRate,
+      totalMinutes,
+      totalTasks,
+      totalEntries: logs.length,
+    };
+  }, [logs]);
+
+  const atLimit = count >= FREE_TIER_LIMIT && subscriptionTier === 'free';
+  const approachingLimit =
+    count >= FREE_TIER_LIMIT - 50 && subscriptionTier === 'free';
 
   return (
-    <div className="relative">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left column: charts + log list */}
-        <div className="space-y-6 lg:col-span-2">
-          <ProgressCharts logs={logs} />
-          <div>
-            <h2 className="mb-3 text-base font-semibold text-gray-900">
-              Log History
-              <span className="ml-2 text-sm font-normal text-gray-400">
-                ({logs.length} {logs.length === 1 ? 'entry' : 'entries'})
-              </span>
-            </h2>
-            <StudyLogList
-              logs={logs}
-              onEdit={handleEdit}
-              onDelete={handleDeleteLog}
-              isLoading={false}
-            />
-          </div>
-        </div>
-
-        {/* Right column: form (desktop always visible, mobile toggleable) */}
-        <div
-          ref={formRef}
-          className={`lg:col-span-1 ${
-            showMobileForm ? 'block' : 'hidden lg:block'
-          }`}
-        >
-          <div className="sticky top-4">
-            <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-              <StudyLogForm
-                onSuccess={handleFormSuccess}
-                editLog={editingLog}
-                onCancel={editingLog ? handleCancelEdit : undefined}
-                isLimitReached={isLimitReached}
-                subjects={subjects}
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Study Log</h1>
+        {!showCreateForm && (
+          <button
+            onClick={() => {
+              if (atLimit) return;
+              setShowCreateForm(true);
+            }}
+            disabled={atLimit}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            aria-label="Create new study log entry"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
               />
-            </div>
-          </div>
-        </div>
+            </svg>
+            New Entry
+          </button>
+        )}
       </div>
 
-      {/* Mobile FAB */}
-      <button
-        onClick={() => {
-          if (showMobileForm) {
-            setShowMobileForm(false);
-            setEditingLog(null);
-          } else {
-            setShowMobileForm(true);
-          }
-        }}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-violet-600 shadow-lg transition hover:bg-violet-700 active:scale-95 lg:hidden"
-        aria-label={showMobileForm ? 'Close form' : 'Log new session'}
-      >
-        {showMobileForm ? (
-          <X className="h-6 w-6 text-white" />
-        ) : (
-          <Plus className="h-6 w-6 text-white" />
-        )}
-      </button>
+      {/* Free tier banner */}
+      {approachingLimit && (
+        <FreeTierBanner count={count} limit={FREE_TIER_LIMIT} />
+      )}
+
+      {/* Create form */}
+      {showCreateForm && (
+        <div className="mb-6">
+          <CreateLogForm
+            onSuccess={handleCreateSuccess}
+            onCancel={() => setShowCreateForm(false)}
+            isSubmitting={isSubmitting}
+            setIsSubmitting={setIsSubmitting}
+          />
+        </div>
+      )}
+
+      {/* Progress charts */}
+      <div className="mb-8">
+        <ProgressCharts progressStats={liveStats} />
+      </div>
+
+      {/* Log list */}
+      <StudyLogList
+        logs={logs}
+        editingId={editingId}
+        onEdit={setEditingId}
+        onDelete={handleDelete}
+        onUpdate={handleUpdateSuccess}
+      />
     </div>
   );
 }
