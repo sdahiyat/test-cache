@@ -1,0 +1,52 @@
+{
+  "overview": "Adds full study session logging and progress visualization to the /study page. Users can create, edit, and delete logs (subject, duration, tasks, notes); free accounts are capped at 500 entries. Charts showing hours over time, subject breakdown, and task completion rates are computed server-side and passed to the client.",
+  "summary_json": {
+    "New route": "/study",
+    "New DB table": "study_logs (uuid PK, user_id FK, subject, tasks_completed, duration_minutes, notes, timestamps)",
+    "RLS policies": "SELECT, INSERT, UPDATE, DELETE — all scoped to auth.uid() = user_id",
+    "Free-tier cap": "500 log entries; enforced in server action and surfaced via FreeTierBanner",
+    "Field constraints": "subject ≤ 100 chars, duration 1–1440 minutes, notes ≤ 1000 chars, tasks_completed ≥ 0",
+    "Progress stats": "dailyHours, subjectBreakdown (%), taskCompletionRate — computed via getProgressStats()",
+    "Out of scope": "AI analysis of progress"
+  },
+  "files_changed": [
+    {
+      "path": "supabase/migrations/20240101000004_study_logs.sql",
+      "summary": "Creates study_logs table with constraints, indexes on user_id and created_at, RLS policies, and an updated_at trigger."
+    },
+    {
+      "path": "src/types/study-log.ts",
+      "summary": "Defines TypeScript interfaces for StudyLog, create/update inputs, form errors, and ProgressStats shape."
+    },
+    {
+      "path": "src/lib/study-logs.ts",
+      "summary": "Server-side data-access helpers: getStudyLogs, getStudyLogCount, createStudyLog, updateStudyLog, deleteStudyLog, getProgressStats."
+    },
+    {
+      "path": "src/app/study/actions.ts",
+      "summary": "Next.js server actions for create/update/delete with input validation, free-tier cap enforcement, and cache revalidation."
+    },
+    {
+      "path": "src/app/study/page.tsx",
+      "summary": "Async server component that guards auth, fetches logs/count/stats/tier in parallel, and renders StudyPageClient."
+    },
+    {
+      "path": "src/app/study/StudyPageClient.tsx",
+      "summary": "Client shell managing local log state, toggling create/edit forms, and composing CreateLogForm, StudyLogList, ProgressCharts, and FreeTierBanner."
+    },
+    {
+      "path": "src/app/study/components/FreeTierBanner.tsx",
+      "summary": "Displays warning or hard-limit alert when free user approaches or hits the 500-entry cap, with upgrade CTA."
+    },
+    {
+      "path": "src/app/study/components/CreateLogForm.tsx",
+      "summary": "Controlled form for new log entries with client-side validation mirroring server constraints."
+    },
+    {
+      "path": "src/app/study/components/EditLogForm.tsx",
+      "summary": "Pre-populated edit form for existing logs, wired to updateStudyLogAction."
+    }
+  ],
+  "extras": "Verify: run migration, log in as free user, create 500 entries and confirm cap blocks further inserts, then check charts render correctly. Follow-up: omitted files (index 9+) may include StudyLogList, ProgressCharts, and chart library integration — review those for completeness. progressStats prop is passed to StudyPageClient but the destructure in the preview omits it; confirm it is forwarded to ProgressCharts.",
+  "fallback_text": "This PR ships study session logging and progress visualization. A new study_logs Supabase table stores per-session subject, duration, tasks completed, and notes, protected by RLS. The /study route fetches logs and computed progress stats server-side and hands them to a client component. Users can create and edit logs via validated forms; free users are capped at 500 entries with a banner UI. Progress charts cover daily hours, subject breakdown, and task completion rates. AI analysis is explicitly out of scope. Nine or more files changed including migration, types, data-access lib, server actions, page, client shell, and form/UI components."
+}
