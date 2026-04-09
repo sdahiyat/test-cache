@@ -1,36 +1,59 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient, createServerClient as createSSRServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-if (!supabaseUrl) {
-  throw new Error(
-    'Missing environment variable: NEXT_PUBLIC_SUPABASE_URL. ' +
-    'Please add it to your .env.local file.'
-  )
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY')
 }
 
-if (!supabaseAnonKey) {
-  throw new Error(
-    'Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY. ' +
-    'Please add it to your .env.local file.'
-  )
-}
+// Browser singleton client
+let browserClient: ReturnType<typeof createBrowserClient<Database>> | null = null
 
-// Browser client singleton — created once, reused across client components
-let browserClient: SupabaseClient<Database> | null = null
-
-export function createBrowserClient(): SupabaseClient<Database> {
-  if (browserClient) return browserClient
-  browserClient = createClient<Database>(supabaseUrl, supabaseAnonKey)
+export function createClient() {
+  if (!browserClient) {
+    browserClient = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
+  }
   return browserClient
 }
 
-// Server client factory — new instance per call, for Server Components / API routes
-export function createServerClient(): SupabaseClient<Database> {
-  return createClient<Database>(supabaseUrl, supabaseAnonKey)
+// Server client (new instance per call, reads cookies)
+export async function createServerClient() {
+  const cookieStore = await cookies()
+
+  return createSSRServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll()
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          )
+        } catch {
+          // setAll called from a Server Component — ignore
+        }
+      },
+    },
+  })
 }
 
-// Convenience default export — the browser singleton
-export const supabase = createBrowserClient()
+// Service role client (bypasses RLS — server only)
+export function createServiceClient() {
+  if (!supabaseServiceKey) {
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable')
+  }
+  return createSupabaseClient<Database>(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+}
+
+export type { Database }
