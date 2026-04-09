@@ -1,0 +1,33 @@
+{
+  "overview": "This PR adds a /search page with fuzzy user search (by display_name and username) and prefix subject search, backed by a new GET /api/search route. A reusable useDebounce hook (400ms delay) drives debounced input, and results are displayed in categorized sections with loading states. Minimum 2 characters required; max 50 results per category.",
+  "summary_json": {
+    "New route": "GET /api/search?q=<query>",
+    "Min query length": "2 characters",
+    "Max results per category": "50",
+    "User search type": "Fuzzy/ilike on display_name and username",
+    "Subject search type": "Prefix ilike on name",
+    "Debounce delay": "400ms",
+    "Env vars required": "NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (optional, falls back to anon key)",
+    "Out of scope": "Full-text search, search filters"
+  },
+  "files_changed": [
+    {
+      "path": "src/hooks/useDebounce.ts",
+      "summary": "New generic debounce hook using useState/useEffect, used by the search page to delay API calls."
+    },
+    {
+      "path": "src/app/api/search/route.ts",
+      "summary": "New Next.js API route that runs parallel Supabase queries for users (ilike fuzzy) and subjects (prefix ilike), enforcing 2-char minimum and 50-result cap."
+    },
+    {
+      "path": "src/app/search/page.tsx",
+      "summary": "New client-side /search page with debounced input, loading/error states, and categorized result sections linking users to profiles and subjects to filtered session views."
+    },
+    {
+      "path": "src/lib/supabase.ts",
+      "summary": "Added createServerComponentClient helper that prefers SUPABASE_SERVICE_ROLE_KEY (bypasses RLS) and falls back to anon key, used by the search API route."
+    }
+  ],
+  "extras": "Verify: hit /api/search?q=a returns 400; /api/search?q=ab returns results. Confirm RLS allows profiles/subjects reads with anon key if service role key is absent. Risk: ilike fuzzy on large profiles table without an index may be slow — consider pg_trgm index on display_name/username.",
+  "fallback_text": "PR 7 ships the search system. A new /search page uses a 400ms debounced input to call GET /api/search?q=, which requires at least 2 characters and returns up to 50 users (fuzzy ilike on display_name/username) and 50 subjects (prefix ilike on name) in parallel Supabase queries. Results render in categorized sections with loading states; user cards link to profiles and subject cards link to filtered session views. A reusable useDebounce hook was added. src/lib/supabase.ts gained a createServerComponentClient that uses the service role key when available. Env vars needed: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and optionally SUPABASE_SERVICE_ROLE_KEY. Full-text search and filters are out of scope."
+}
