@@ -1,0 +1,52 @@
+{
+  "overview": "This PR implements a full Supabase-backed authentication system for the Next.js app. It adds client/server Supabase utilities, an AuthContext provider, Next.js middleware for route protection, and UI form components for login, registration, forgot-password, and password reset flows. Email verification is required on signup and session persistence is handled via cookie-based tokens.",
+  "summary_json": {
+    "New env vars required": "NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "Protected routes (middleware)": "/dashboard, /sessions, /feed, /study, /settings, /upgrade",
+    "Auth routes (middleware)": "/login, /register, /forgot-password",
+    "New pages (implied)": "/login, /register, /forgot-password, /reset-password",
+    "Supabase client strategy": "Browser singleton via createBrowserClient(), new instance per call via createServerClient()",
+    "Out of scope": "Profile management, protected page content",
+    "Breaking changes": "App will throw at startup if NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY are missing"
+  },
+  "files_changed": [
+    {
+      "path": "src/lib/supabase.ts",
+      "summary": "Exports a browser singleton client and a server factory client using Supabase JS v2, with hard startup errors if env vars are missing."
+    },
+    {
+      "path": "src/lib/utils.ts",
+      "summary": "Adds cn() Tailwind class merge helper and a formatDuration() utility; shared across UI components."
+    },
+    {
+      "path": "src/lib/auth.ts",
+      "summary": "Server-side auth helpers (getSession, getUser, signOut) for use in Server Components and API routes."
+    },
+    {
+      "path": "src/contexts/AuthContext.tsx",
+      "summary": "Client-side AuthContext provider exposing user, session, loading state, and signIn/signUp/signOut/resetPassword actions."
+    },
+    {
+      "path": "src/middleware.ts",
+      "summary": "Next.js middleware that reads Supabase session cookies (both legacy and v2 formats) to enforce protected-route redirects and block authenticated users from auth pages."
+    },
+    {
+      "path": "src/components/auth/LoginForm.tsx",
+      "summary": "Login form component with email/password validation, error display, and post-login redirect support via searchParams."
+    },
+    {
+      "path": "src/components/auth/RegisterForm.tsx",
+      "summary": "Registration form collecting display name, email, and password with confirmation; shows success state pending email verification."
+    },
+    {
+      "path": "src/components/auth/ForgotPasswordForm.tsx",
+      "summary": "Forgot-password form that triggers Supabase password reset email and shows a success confirmation state."
+    },
+    {
+      "path": "src/components/auth/ResetPasswordForm.tsx",
+      "summary": "Reset-password form that waits for Supabase to hydrate the session from the email link hash before allowing password update."
+    }
+  ],
+  "extras": "Verify: add both env vars to .env.local, register a user, confirm email verification email is sent, test redirect from /dashboard to /login when logged out and back after login. Follow-up risks: middleware reads raw cookies manually (not using @supabase/ssr), which may break if Supabase changes its cookie format; consider migrating to @supabase/ssr for robust cookie handling. Additional files may have been omitted due to preview cap — confirm page-level files (/app/login, /app/register, etc.) are included.",
+  "fallback_text": "PR #2 adds a complete Supabase authentication system to the Next.js app. Two new env vars are required at startup (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY) or the app throws. src/lib/supabase.ts provides a browser singleton and per-call server client. src/lib/auth.ts exposes server-side getSession/getUser/signOut helpers. src/contexts/AuthContext.tsx is a client provider for signIn, signUp, signOut, and resetPassword. src/middleware.ts guards /dashboard, /sessions, /feed, /study, /settings, /upgrade (redirects to /login if no valid session) and blocks authenticated users from /login, /register, /forgot-password. Four form components cover login, registration (with email verification), forgot-password, and reset-password flows. Profile management and protected page content are explicitly out of scope."
+}

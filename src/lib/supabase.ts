@@ -1,75 +1,36 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database';
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
 
-// ---------------------------------------------------------------------------
-// Environment variable validation
-// ---------------------------------------------------------------------------
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 if (!supabaseUrl) {
-  throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_URL');
+  throw new Error(
+    'Missing environment variable: NEXT_PUBLIC_SUPABASE_URL. ' +
+    'Please add it to your .env.local file.'
+  )
 }
 
 if (!supabaseAnonKey) {
-  throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  throw new Error(
+    'Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY. ' +
+    'Please add it to your .env.local file.'
+  )
 }
 
-// ---------------------------------------------------------------------------
-// Browser / client-side Supabase client
-// ---------------------------------------------------------------------------
-// Use this client in React components, hooks, and any browser-side code.
-// It uses the anon key and respects Row-Level Security policies.
-// ---------------------------------------------------------------------------
+// Browser client singleton — created once, reused across client components
+let browserClient: SupabaseClient<Database> | null = null
 
-export const supabase: SupabaseClient<Database> = createClient<Database>(
-  supabaseUrl,
-  supabaseAnonKey
-);
-
-export default supabase;
-
-// ---------------------------------------------------------------------------
-// Browser client convenience factory
-// ---------------------------------------------------------------------------
-
-/**
- * Returns the shared browser-side Supabase client.
- * Equivalent to importing `supabase` directly.
- */
 export function createBrowserClient(): SupabaseClient<Database> {
-  return supabase;
+  if (browserClient) return browserClient
+  browserClient = createClient<Database>(supabaseUrl, supabaseAnonKey)
+  return browserClient
 }
 
-// ---------------------------------------------------------------------------
-// Server-side Supabase client (service role)
-// ---------------------------------------------------------------------------
-// ⚠️  SECURITY WARNING:
-//     SUPABASE_SERVICE_ROLE_KEY bypasses ALL Row-Level Security policies.
-//     This client must ONLY be used in:
-//       - Next.js API route handlers (src/app/api/*)
-//       - Server Actions
-//       - Server Components that need elevated privileges
-//     NEVER import createServerSupabaseClient() in client components or
-//     expose the service role key to the browser bundle.
-// ---------------------------------------------------------------------------
-
-/**
- * Creates a server-side Supabase client with the service role key.
- * Call this function inside API routes or Server Actions — never in the browser.
- */
-export function createServerSupabaseClient(): SupabaseClient<Database> {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!serviceRoleKey) {
-    throw new Error('Missing environment variable: SUPABASE_SERVICE_ROLE_KEY');
-  }
-
-  return createClient<Database>(supabaseUrl!, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
+// Server client factory — new instance per call, for Server Components / API routes
+export function createServerClient(): SupabaseClient<Database> {
+  return createClient<Database>(supabaseUrl, supabaseAnonKey)
 }
+
+// Convenience default export — the browser singleton
+export const supabase = createBrowserClient()
