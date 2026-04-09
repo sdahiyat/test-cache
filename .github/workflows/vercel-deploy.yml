@@ -1,0 +1,63 @@
+name: Deploy to Vercel
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HAS_VERCEL: ${{ secrets.VERCEL_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        if: env.HAS_VERCEL == 'true'
+        run: npm install --global vercel@latest
+
+      - name: Link to provisioned Vercel project
+        if: env.HAS_VERCEL == 'true'
+        run: |
+          mkdir -p project/.vercel
+          printf '{"orgId":"%s","projectId":"%s"}' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > project/.vercel/project.json
+
+      - name: Pull Vercel environment
+        if: env.HAS_VERCEL == 'true'
+        run: vercel pull --yes --cwd project/ --environment=${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Install project dependencies
+        if: env.HAS_VERCEL == 'true'
+        run: npm install --omit=optional
+        working-directory: project/
+
+      - name: Build project
+        if: env.HAS_VERCEL == 'true'
+        run: vercel build --cwd project/ ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy
+        if: env.HAS_VERCEL == 'true'
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --cwd project/ ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> $GITHUB_OUTPUT
+
+      - name: Comment preview URL on PR
+        if: env.HAS_VERCEL == 'true' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ Preview deployed: ${{ steps.deploy.outputs.url }}`
+            })
