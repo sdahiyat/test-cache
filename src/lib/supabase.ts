@@ -1,36 +1,42 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/database'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createServerClient as createSupabaseServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl) {
+if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
-    'Missing environment variable: NEXT_PUBLIC_SUPABASE_URL. ' +
-    'Please add it to your .env.local file.'
-  )
+    'Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY'
+  );
 }
 
-if (!supabaseAnonKey) {
-  throw new Error(
-    'Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY. ' +
-    'Please add it to your .env.local file.'
-  )
+// Browser singleton client
+let browserClient: ReturnType<typeof createSupabaseClient> | null = null;
+
+export function createBrowserClient() {
+  if (browserClient) return browserClient;
+  browserClient = createSupabaseClient(supabaseUrl!, supabaseAnonKey!);
+  return browserClient;
 }
 
-// Browser client singleton — created once, reused across client components
-let browserClient: SupabaseClient<Database> | null = null
-
-export function createBrowserClient(): SupabaseClient<Database> {
-  if (browserClient) return browserClient
-  browserClient = createClient<Database>(supabaseUrl, supabaseAnonKey)
-  return browserClient
+// Server client factory — must be called within request context
+export function createServerClient() {
+  const cookieStore = cookies();
+  return createSupabaseServerClient(supabaseUrl!, supabaseAnonKey!, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        } catch {
+          // Called from Server Component — mutations ignored
+        }
+      },
+    },
+  });
 }
-
-// Server client factory — new instance per call, for Server Components / API routes
-export function createServerClient(): SupabaseClient<Database> {
-  return createClient<Database>(supabaseUrl, supabaseAnonKey)
-}
-
-// Convenience default export — the browser singleton
-export const supabase = createBrowserClient()
