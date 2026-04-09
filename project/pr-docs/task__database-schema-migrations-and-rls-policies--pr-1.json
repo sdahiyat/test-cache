@@ -1,0 +1,49 @@
+{
+  "overview": "This PR establishes the complete Supabase PostgreSQL foundation for StudySync: all core tables, RLS policies, seed data for subjects/tasks, helper SQL functions, TypeScript database types, and a typed Supabase client. It is intentionally scoped to backend schema only — no API routes or UI components are included.",
+  "summary_json": {
+    "Migration run order": "001_initial_schema → 002_rls_policies → 003_seed_subjects_and_tasks → 004_helper_functions",
+    "Tables created": "profiles, study_sessions, study_logs, subjects, tasks, follows, likes, comments, subscriptions, ai_usage_tracking, ai_study_plans",
+    "RLS pattern": "Public read on profiles/subjects; auth-gated writes for user-owned rows; subscription-gated access where applicable",
+    "Seed data": "Fixed UUIDs used for idempotent subject/task inserts across multiple categories (Mathematics, etc.)",
+    "Helper functions": "get_profile_stats returns followers_count, following_count, study_hours_total, tasks_completed_count",
+    "Required env vars": "NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "TypeScript types": "Full Database interface in src/types/database.ts mirrors all table Row/Insert/Update shapes",
+    "Out of scope": "API routes, UI components"
+  },
+  "files_changed": [
+    {
+      "path": "supabase/migrations/001_initial_schema.sql",
+      "summary": "Defines all StudySync tables with constraints, indexes, and foreign keys; enables uuid-ossp and pgcrypto extensions."
+    },
+    {
+      "path": "supabase/migrations/002_rls_policies.sql",
+      "summary": "Enables RLS on all 11 tables and attaches policies enforcing public read, auth-gated writes, and subscription-gated patterns."
+    },
+    {
+      "path": "supabase/migrations/003_seed_subjects_and_tasks.sql",
+      "summary": "Inserts predefined subject and task library using fixed UUIDs to allow safe idempotent re-runs."
+    },
+    {
+      "path": "supabase/migrations/004_helper_functions.sql",
+      "summary": "Adds SECURITY DEFINER SQL function get_profile_stats aggregating follower, following, study hours, and task completion counts for a given profile."
+    },
+    {
+      "path": "src/lib/supabase.ts",
+      "summary": "Creates and exports a typed Supabase browser client, with hard startup errors if required env vars are missing."
+    },
+    {
+      "path": "src/types/database.ts",
+      "summary": "Full TypeScript Database interface mirroring every table's Row, Insert, and Update shapes for type-safe query usage."
+    },
+    {
+      "path": "src/lib/utils.ts",
+      "summary": "Adds shared utilities: Tailwind class merging (cn) and formatDuration for converting minutes to human-readable strings."
+    },
+    {
+      "path": "src/app/layout.tsx",
+      "summary": "Bootstraps Next.js root layout with Inter font and StudySync metadata; minimal scaffolding for future UI work."
+    }
+  ],
+  "extras": "Verify by running migrations in order against a fresh Supabase project and confirming RLS blocks unauthenticated writes. Follow-up tasks: API routes, UI components, and server-side Supabase client (service role key) are not yet present.",
+  "fallback_text": "PR #1 on task/database-schema-migrations-and-rls-policies delivers the full Supabase schema for StudySync. Four ordered migrations create all tables (profiles, study_sessions, study_logs, subjects, tasks, follows, likes, comments, subscriptions, ai_usage_tracking, ai_study_plans), apply RLS with public-read/auth-write/subscription-gated policies, seed the subject and task library with fixed UUIDs, and add a get_profile_stats helper function. A typed Supabase client in src/lib/supabase.ts requires NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY at startup. src/types/database.ts provides full Row/Insert/Update TypeScript types. src/lib/utils.ts adds cn and formatDuration helpers. src/app/layout.tsx is minimal Next.js scaffolding. API routes and UI are explicitly out of scope."
+}
