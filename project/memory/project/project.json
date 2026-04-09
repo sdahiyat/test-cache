@@ -1,0 +1,171 @@
+{
+  "schemaVersion": "cofabric.memory.project.v2",
+  "name": "StudySync",
+  "oneLineDescription": "AI-powered study and collaboration platform for students",
+  "whatItIs": "StudySync is a web-based platform for students to organize study schedules, collaborate with peers, and receive AI-assisted learning suggestions. It combines task management, study tracking, and intelligent recommendations to help students stay productive.",
+  "stack": [
+    {
+      "name": "next",
+      "version": "^14.0.0",
+      "purpose": "React framework"
+    },
+    {
+      "name": "@supabase/supabase-js",
+      "version": "^2.38.0",
+      "purpose": "Database and authentication"
+    },
+    {
+      "name": "openai",
+      "version": "^4.20.0",
+      "purpose": "AI study plans and tips"
+    },
+    {
+      "name": "stripe",
+      "version": "^14.7.0",
+      "purpose": "Payment processing"
+    },
+    {
+      "name": "tailwind-merge",
+      "version": "^2.0.0",
+      "purpose": "CSS class utility"
+    },
+    {
+      "name": "clsx",
+      "version": "^2.0.0",
+      "purpose": "Conditional CSS classes"
+    },
+    {
+      "name": "lucide-react",
+      "version": "^0.294.0",
+      "purpose": "Icons"
+    },
+    {
+      "name": "react",
+      "version": "^18.0.0",
+      "purpose": "UI library"
+    },
+    {
+      "name": "react-dom",
+      "version": "^18.0.0",
+      "purpose": "React DOM rendering"
+    }
+  ],
+  "externalIntegrations": [
+    {
+      "service": "Supabase",
+      "envVars": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ],
+      "clientLocation": null
+    },
+    {
+      "service": "OpenAI",
+      "envVars": [
+        "OPENAI_API_KEY"
+      ],
+      "clientLocation": null
+    },
+    {
+      "service": "Stripe",
+      "envVars": [
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+      ],
+      "clientLocation": null
+    }
+  ],
+  "coreUserFlows": [
+    "Register with email/password and create student profile with study preferences",
+    "Create structured study sessions with subjects, duration, and tasks, then track completed sessions",
+    "Follow peers and view their study activity in an activity feed with likes and comments",
+    "Generate AI-powered study plans and receive learning suggestions (paid tier only)"
+  ],
+  "outOfScope": [
+    "Native mobile apps",
+    "Integration with learning management systems (LMS)",
+    "Video or audio uploads",
+    "Real-time chat",
+    "Gamified leaderboards or points",
+    "Notifications system",
+    "AI question answering or tutoring (beyond text suggestions)",
+    "Multi-language support"
+  ],
+  "dataModel": [
+    {
+      "entity": "users",
+      "purpose": "Stores student profiles with authentication and study preferences",
+      "keyFields": [
+        "display name",
+        "username",
+        "bio",
+        "study focus",
+        "avatar"
+      ]
+    },
+    {
+      "entity": "study_sessions",
+      "purpose": "Stores structured study sessions created by users",
+      "keyFields": [
+        "name",
+        "subject",
+        "duration",
+        "tasks"
+      ]
+    },
+    {
+      "entity": "study_logs",
+      "purpose": "Tracks completed study sessions with progress data",
+      "keyFields": [
+        "subject",
+        "tasks completed",
+        "duration",
+        "notes"
+      ]
+    },
+    {
+      "entity": "subjects",
+      "purpose": "Stores predefined subject and task library",
+      "keyFields": [
+        "name",
+        "category",
+        "task description"
+      ]
+    },
+    {
+      "entity": "follows",
+      "purpose": "Stores peer follow relationships between users",
+      "keyFields": [
+        "follower",
+        "following"
+      ]
+    },
+    {
+      "entity": "comments",
+      "purpose": "Stores user comments on study sessions",
+      "keyFields": [
+        "content",
+        "user",
+        "session"
+      ]
+    },
+    {
+      "entity": "likes",
+      "purpose": "Stores user likes on study sessions",
+      "keyFields": [
+        "user",
+        "session"
+      ]
+    }
+  ],
+  "crossCuttingPrinciples": [
+    "Free tier limits users to 5 active study sessions and limited AI usage, while paid tier ($10/month) provides unlimited sessions and full AI features",
+    "All user-generated content must pass AI-powered moderation checks for hate speech, spam, and abuse",
+    "Mobile-responsive design with mobile-first approach and specific breakpoints at 640px and 1024px",
+    "WCAG 2.1 AA accessibility compliance with keyboard navigation and screen reader support",
+    "AI usage is rate-limited to 10 requests per hour per user with safety and productivity warnings"
+  ],
+  "specSummary": "StudySync is designed as a comprehensive study management platform that bridges individual productivity with social learning. The platform centers around structured study sessions where students define subjects, duration, and specific tasks, then log their completed work to build detailed progress tracking. A key differentiator is the peer collaboration aspect—users can follow other students and see their study activity in a chronological feed, fostering accountability through likes and comments on study sessions. The AI integration provides two main value propositions: personalized study plan generation based on user preferences and subject-specific learning tips, both restricted to paid subscribers. The freemium model creates clear upgrade incentives by limiting free users to five active study sessions and basic AI access, while Pro subscribers get unlimited sessions and full AI features for $10 monthly. Technical implementation leverages Next.js 14 with Supabase for authentication and data persistence, OpenAI for AI features, and Stripe for subscription management. The platform maintains strict content moderation through AI-powered filtering and emphasizes mobile-responsive design to serve students across devices. Core constraints include performance targets under 3 seconds on 3G connections, comprehensive accessibility compliance, and robust security through HTTPS and row-level security policies."
+}
