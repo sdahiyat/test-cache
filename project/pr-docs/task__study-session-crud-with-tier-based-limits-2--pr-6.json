@@ -1,0 +1,53 @@
+{
+  "overview": "This PR implements full CRUD for study sessions with tier-based enforcement: free users are capped at 5 active sessions while paid users have unlimited access. Sessions support versioning on edits (snapshots stored in session_versions), and two new pages are added — /sessions (list) and /sessions/[id] (detail). API routes handle auth, ownership checks, and TierLimitError propagation.",
+  "summary_json": {
+    "New routes": "GET/POST /api/sessions, GET/PATCH/DELETE /api/sessions/[id], GET /api/sessions/[id]/versions",
+    "New pages": "/sessions (list), /sessions/[id] (detail)",
+    "Tier limits": "Free users: max 5 active sessions; Pro users: unlimited (checked via subscriptions table)",
+    "Session versioning": "Each edit snapshots previous state into session_versions table with version_number",
+    "Custom error": "TierLimitError thrown when free-tier limit is exceeded; returns HTTP 403",
+    "Out of scope": "Active study timer, logging completed sessions",
+    "Required env vars": "NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "Cap note": "Files beyond index 9 were omitted from preview; additional component files likely exist"
+  },
+  "files_changed": [
+    {
+      "path": "src/lib/subjects.ts",
+      "summary": "Adds getSubjects() helper that fetches subjects from Supabase and maps the flat category text field to the Subject interface."
+    },
+    {
+      "path": "src/lib/sessions.ts",
+      "summary": "Core sessions library: defines StudySession/SessionVersion types, TierLimitError class, and CRUD functions (getUserSessions, createSession, updateSession, deleteSession, getSessionById, getSessionVersions, checkSessionLimit) with tier enforcement logic."
+    },
+    {
+      "path": "src/lib/supabase.ts",
+      "summary": "Exports browser singleton and server factory Supabase clients typed against the Database schema; validates required env vars at module load."
+    },
+    {
+      "path": "src/app/api/sessions/route.ts",
+      "summary": "GET lists authenticated user's sessions; POST creates a new session with UUID validation and TierLimitError handling (returns 403 on limit breach)."
+    },
+    {
+      "path": "src/app/api/sessions/[id]/route.ts",
+      "summary": "GET returns session by ID with version count; PATCH updates and triggers versioning; DELETE soft-deletes — all with ownership verification."
+    },
+    {
+      "path": "src/app/api/sessions/[id]/versions/route.ts",
+      "summary": "GET endpoint that returns full version history for a session after verifying user ownership."
+    },
+    {
+      "path": "src/app/sessions/layout.tsx",
+      "summary": "Shared layout for /sessions routes: sticky nav bar with logo, profile display name fetched server-side, and user avatar link."
+    },
+    {
+      "path": "src/app/sessions/page.tsx",
+      "summary": "Server-rendered /sessions list page: fetches sessions, limit status, and subjects in parallel; renders SessionCard list, NewSessionButton (disabled at limit), and TierLimitBanner."
+    },
+    {
+      "path": "src/app/sessions/[id]/page.tsx",
+      "summary": "Server-rendered session detail page showing metadata, tasks, version history, and housing SessionEditModal and SessionDeleteButton components."
+    }
+  ],
+  "extras": "Verify: confirm session_versions table exists in Supabase with columns (id, session_id, version_number, snapshot jsonb, created_at); check subscriptions table has an active/status field used by checkSessionLimit. Follow-up: additional component files (SessionCard, NewSessionButton, TierLimitBanner, SessionEditModal, SessionDeleteButton, VersionHistory) were cut by the file cap — review those for completeness. Risk: browser Supabase singleton may retain stale auth state across user switches in long-lived sessions.",
+  "fallback_text": "PR #6 adds full study session CRUD with tier limits and versioning. A sessions lib (src/lib/sessions.ts) provides all DB operations: list, create, update, delete, and version history fetch, plus checkSessionLimit which queries the subscriptions table to allow unlimited sessions for pro users and enforce a hard cap of 5 for free users (throws TierLimitError → HTTP 403). Edits snapshot the prior session state into session_versions. Three API route files expose these operations under /api/sessions and /api/sessions/[id] and /api/sessions/[id]/versions, all gated by Supabase auth and ownership checks. Two new Next.js pages render the list (/sessions) and detail (/sessions/[id]) views server-side. A subjects helper and shared layout were also added. Env vars NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required. Active timer and session logging are explicitly out of scope."
+}

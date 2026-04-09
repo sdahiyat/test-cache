@@ -1,36 +1,52 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient, createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import type { Database } from '@/types/database'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!supabaseUrl) {
+if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
-    'Missing environment variable: NEXT_PUBLIC_SUPABASE_URL. ' +
-    'Please add it to your .env.local file.'
+    'Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY'
   )
 }
 
-if (!supabaseAnonKey) {
-  throw new Error(
-    'Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY. ' +
-    'Please add it to your .env.local file.'
-  )
-}
+// Browser singleton client for client components
+let browserClient: ReturnType<typeof createBrowserClient<Database>> | null = null
 
-// Browser client singleton — created once, reused across client components
-let browserClient: SupabaseClient<Database> | null = null
-
-export function createBrowserClient(): SupabaseClient<Database> {
-  if (browserClient) return browserClient
-  browserClient = createClient<Database>(supabaseUrl, supabaseAnonKey)
+export function createBrowserSupabaseClient() {
+  if (!browserClient) {
+    browserClient = createBrowserClient<Database>(supabaseUrl!, supabaseAnonKey!)
+  }
   return browserClient
 }
 
-// Server client factory — new instance per call, for Server Components / API routes
-export function createServerClient(): SupabaseClient<Database> {
-  return createClient<Database>(supabaseUrl, supabaseAnonKey)
+// Server client factory for Server Components and API routes
+export function createServerSupabaseClient() {
+  const cookieStore = cookies()
+
+  return createServerClient<Database>(supabaseUrl!, supabaseAnonKey!, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value
+      },
+      set(name: string, value: string, options: Record<string, unknown>) {
+        try {
+          cookieStore.set({ name, value, ...options })
+        } catch {
+          // Ignore errors in read-only cookie stores (e.g., in Server Components)
+        }
+      },
+      remove(name: string, options: Record<string, unknown>) {
+        try {
+          cookieStore.set({ name, value: '', ...options })
+        } catch {
+          // Ignore errors in read-only cookie stores
+        }
+      },
+    },
+  })
 }
 
-// Convenience default export — the browser singleton
-export const supabase = createBrowserClient()
+// Default export for backwards compatibility
+export const supabase = createBrowserSupabaseClient()
