@@ -1,0 +1,54 @@
+{
+  "overview": "This PR implements study session logging and progress visualization for the /study page. Users can create, edit, and delete logs tracking subject, duration, tasks completed, and notes, with a 500-entry cap for free users. Charts show hours studied over time, subject breakdown, and task completion rates.",
+  "summary_json": {
+    "New route: collection": "GET/POST /api/study-logs",
+    "New route: single item": "GET/PUT/DELETE /api/study-logs/[id]",
+    "New page": "/study (server-rendered, redirects unauthenticated users)",
+    "Free-user cap": "500 study log entries",
+    "GET /api/study-logs fetch limit": "200 most recent entries ordered by logged_at DESC",
+    "DB table": "study_logs with RLS policies per user",
+    "Charts": "Area (daily hours), Bar (subject breakdown), Pie (task completion); time ranges: 7d, 30d, 90d",
+    "Out of scope": "AI analysis of progress",
+    "SSR note": "ProgressCharts may need ssr:false wrapper to avoid hydration errors"
+  },
+  "files_changed": [
+    {
+      "path": "supabase/migrations/study_logs.sql",
+      "summary": "Creates the study_logs table with indexes and RLS policies for per-user CRUD isolation."
+    },
+    {
+      "path": "src/lib/study-logs.ts",
+      "summary": "Defines StudyLog types and client-side API helper functions (fetch, create, update, delete, chart data helpers)."
+    },
+    {
+      "path": "src/app/api/study-logs/route.ts",
+      "summary": "Next.js route handler for GET (list) and POST (create) study logs with auth and entry cap enforcement."
+    },
+    {
+      "path": "src/app/api/study-logs/[id]/route.ts",
+      "summary": "Next.js route handler for GET, PUT, and DELETE on individual study log entries with ownership checks."
+    },
+    {
+      "path": "src/components/study/StudyLogForm.tsx",
+      "summary": "Client form component for creating and editing study log entries, supports pre-population for edit mode and subject autocomplete."
+    },
+    {
+      "path": "src/components/study/StudyLogList.tsx",
+      "summary": "Client component rendering study logs chronologically with color-coded subject badges and edit/delete actions."
+    },
+    {
+      "path": "src/components/study/ProgressCharts.tsx",
+      "summary": "Client component rendering Recharts area, bar, and pie charts for hours, subject breakdown, and task completion with time-range filtering."
+    },
+    {
+      "path": "src/app/study/StudyPageClient.tsx",
+      "summary": "Client orchestrator for the /study page managing log state, edit flow, mobile form toggle, and wiring form/list/charts together."
+    },
+    {
+      "path": "src/app/study/page.tsx",
+      "summary": "Server component for /study that handles auth redirect and passes initial logs and limit status to StudyPageClient."
+    }
+  ],
+  "extras": "Verify: run the SQL migration, confirm RLS blocks cross-user access, test 500-entry cap rejection (POST should return error), and check ProgressCharts for SSR hydration issues (wrap with dynamic ssr:false if needed). Follow-up: cap_note indicates additional files were omitted — review any remaining files for completeness.",
+  "fallback_text": "PR #9 adds study session logging and progress charts. A new study_logs Postgres table is created with RLS. API routes handle list, create, update, and delete with auth checks; POST enforces a 500-entry free-user cap and GET returns up to 200 entries. The /study page (server-rendered, auth-gated) hosts a form for logging subject, duration, tasks, and notes with edit support, a chronological log list with color-coded subjects, and Recharts visualizations (area/bar/pie) across 7d/30d/90d windows. AI analysis is explicitly out of scope."
+}
