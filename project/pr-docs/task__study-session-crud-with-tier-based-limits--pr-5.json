@@ -1,0 +1,52 @@
+{
+  "overview": "Implements full CRUD for study sessions with tier-based limits (free users capped at 5 active sessions, paid users unlimited) and session versioning on edits. Adds /sessions list and /sessions/[id] detail pages backed by new API routes. Active study timer and session logging are explicitly out of scope.",
+  "summary_json": {
+    "New API routes": "GET/POST /api/sessions, GET/PATCH/DELETE /api/sessions/[id], GET /api/subjects",
+    "Tier limit": "Free users: max 5 active sessions; paid users: unlimited",
+    "Session versioning": "Previous versions stored in study_session_versions table on each edit",
+    "New pages": "/sessions (list), /sessions/[id] (detail)",
+    "Env vars required": "NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY",
+    "Out of scope": "Active study timer, logging completed sessions",
+    "Breaking changes": "None noted; requires study_sessions and study_session_versions tables in Supabase"
+  },
+  "files_changed": [
+    {
+      "path": "src/lib/supabase.ts",
+      "summary": "Adds browser singleton and async server Supabase clients typed against the Database interface."
+    },
+    {
+      "path": "src/lib/utils.ts",
+      "summary": "Adds formatDuration and formatRelativeTime helpers used across session UI."
+    },
+    {
+      "path": "src/types/database.ts",
+      "summary": "Defines TypeScript types for all Supabase tables including study_sessions, study_session_versions, subjects, and subscriptions."
+    },
+    {
+      "path": "src/app/api/sessions/route.ts",
+      "summary": "GET lists non-archived sessions for the authed user; POST creates a session enforcing tier-based active-session limits."
+    },
+    {
+      "path": "src/app/api/sessions/[id]/route.ts",
+      "summary": "GET/PATCH/DELETE for a single session with ownership verification; PATCH snapshots old data into study_session_versions before updating."
+    },
+    {
+      "path": "src/app/api/subjects/route.ts",
+      "summary": "GET returns subjects from the library with optional search filtering by name or category."
+    },
+    {
+      "path": "src/components/sessions/SessionSkeleton.tsx",
+      "summary": "Animated loading skeleton for individual session cards and a 6-card grid skeleton for the list page."
+    },
+    {
+      "path": "src/components/sessions/SubjectSelect.tsx",
+      "summary": "Controlled select input that groups subjects by category for use in session create/edit forms."
+    },
+    {
+      "path": "src/components/sessions/DeleteSessionButton.tsx",
+      "summary": "Client component with confirmation dialog that calls DELETE /api/sessions/[id] and optionally redirects after deletion."
+    }
+  ],
+  "extras": "Verify Supabase migrations include study_sessions, study_session_versions, subjects, and subscriptions tables with correct RLS policies. Confirm tier check reads from subscriptions table and that the service role key is set in production env. Follow-up: add active study timer and completed-session logging in a future PR.",
+  "fallback_text": "This PR ships study session CRUD (create, read, update, delete) with tier-based limits (free ≤5 active, paid unlimited) and edit versioning. New API routes live at /api/sessions and /api/sessions/[id]; a subjects lookup endpoint is at /api/subjects. TypeScript database types cover all relevant tables. UI additions include a subject grouped-select, a delete button with confirmation modal, and loading skeletons. Requires NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY env vars, plus corresponding Supabase table migrations. Active timer and session logging are deferred."
+}
