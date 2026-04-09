@@ -1,36 +1,42 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/database'
+import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl) {
-  throw new Error(
-    'Missing environment variable: NEXT_PUBLIC_SUPABASE_URL. ' +
-    'Please add it to your .env.local file.'
-  )
+if (!supabaseUrl) throw new Error('Missing env var: NEXT_PUBLIC_SUPABASE_URL');
+if (!supabaseAnonKey) throw new Error('Missing env var: NEXT_PUBLIC_SUPABASE_ANON_KEY');
+
+// Browser singleton
+let browserClient: ReturnType<typeof createClient> | null = null;
+
+export function createBrowserClient() {
+  if (browserClient) return browserClient;
+  browserClient = createClient(supabaseUrl!, supabaseAnonKey!);
+  return browserClient;
 }
 
-if (!supabaseAnonKey) {
-  throw new Error(
-    'Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY. ' +
-    'Please add it to your .env.local file.'
-  )
+// Server client (new instance per call)
+export function createServerClient() {
+  return createClient(supabaseUrl!, supabaseAnonKey!, {
+    auth: {
+      persistSession: false,
+    },
+  });
 }
 
-// Browser client singleton — created once, reused across client components
-let browserClient: SupabaseClient<Database> | null = null
-
-export function createBrowserClient(): SupabaseClient<Database> {
-  if (browserClient) return browserClient
-  browserClient = createClient<Database>(supabaseUrl, supabaseAnonKey)
-  return browserClient
+// Service role client — bypasses RLS, only for server-side/webhook usage
+export function createServiceRoleClient() {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceRoleKey) {
+    throw new Error('Missing env var: SUPABASE_SERVICE_ROLE_KEY');
+  }
+  return createClient(supabaseUrl!, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
 }
 
-// Server client factory — new instance per call, for Server Components / API routes
-export function createServerClient(): SupabaseClient<Database> {
-  return createClient<Database>(supabaseUrl, supabaseAnonKey)
-}
-
-// Convenience default export — the browser singleton
-export const supabase = createBrowserClient()
+// Default export for convenience (browser client)
+export const supabase = createBrowserClient();

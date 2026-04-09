@@ -1,0 +1,53 @@
+{
+  "overview": "Implements a freemium Stripe subscription system with a Pro tier at $10/month. Adds a checkout flow at /upgrade, webhook handling for full subscription lifecycle (created, updated, deleted, payment failed), a 7-day grace period on failed payments, and reusable subscription status helpers for tier-gating across the app. Database schema and RLS policies are included via a Supabase migration.",
+  "summary_json": {
+    "New routes": "POST /api/stripe/create-checkout, POST /api/stripe/webhook, POST /api/stripe/create-portal, GET /upgrade (page)",
+    "Subscription statuses": "free, pro (active/trialing), grace (past_due within 7-day window)",
+    "Pro price": "$10/month, controlled by STRIPE_PRO_PRICE_ID env var",
+    "Grace period": "7 days from payment failure; access maintained during grace",
+    "Required env vars": "STRIPE_SECRET_KEY, STRIPE_PRO_PRICE_ID, STRIPE_WEBHOOK_SECRET, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_APP_URL",
+    "DB migration": "supabase/migrations/20240108000000_create_subscriptions.sql — new subscriptions table with RLS",
+    "Breaking changes": "None; additive only",
+    "Out of scope": "Multiple pricing tiers, annual billing"
+  },
+  "files_changed": [
+    {
+      "path": "src/lib/stripe.ts",
+      "summary": "Initializes the Stripe SDK client, exports the Pro price ID constant, and provides helpers for customer lookup and amount formatting."
+    },
+    {
+      "path": "src/lib/subscription.ts",
+      "summary": "Core subscription logic: fetches user subscription from Supabase, maps Stripe statuses to free/pro/grace, and exposes typed UserSubscription for tier-gating across the app."
+    },
+    {
+      "path": "src/lib/supabase.ts",
+      "summary": "Adds browser singleton, per-request server client, and a service-role client (RLS bypass) needed by the webhook handler."
+    },
+    {
+      "path": "src/app/api/stripe/create-checkout/route.ts",
+      "summary": "POST endpoint that authenticates the user, checks for an existing active subscription, and creates a Stripe Checkout session for the Pro tier."
+    },
+    {
+      "path": "src/app/api/stripe/webhook/route.ts",
+      "summary": "POST endpoint that verifies Stripe webhook signatures and handles subscription created/updated/deleted and payment_failed events, syncing state to Supabase via service-role client."
+    },
+    {
+      "path": "src/app/api/stripe/create-portal/route.ts",
+      "summary": "POST endpoint that looks up the user's stripe_customer_id and creates a Stripe Billing Portal session for self-serve subscription management."
+    },
+    {
+      "path": "supabase/migrations/20240108000000_create_subscriptions.sql",
+      "summary": "Creates the subscriptions table with relevant Stripe fields, indexes, RLS enabled, and a policy allowing users to read only their own row."
+    },
+    {
+      "path": "src/app/upgrade/page.tsx",
+      "summary": "Server-rendered /upgrade page showing Pro feature list, current subscription status, and success/canceled query-param banners; redirects unauthenticated users to /login."
+    },
+    {
+      "path": "src/components/subscription/UpgradeButton.tsx",
+      "summary": "Client component that calls /api/stripe/create-checkout and redirects the user to the returned Stripe Checkout URL."
+    }
+  ],
+  "extras": "Verify: run the Supabase migration, set all required env vars, register /api/stripe/webhook in the Stripe dashboard (use stripe listen --forward-to locally), then test the full upgrade flow and a simulated payment failure. Follow-up risks: server client uses anon key (not service role) for auth lookups in checkout/portal routes — ensure RLS permits those reads or switch to service-role for those calls too. Cap note: one or more files beyond index 9 were omitted from review.",
+  "fallback_text": "This PR ships a complete Stripe freemium subscription system. A new /upgrade page lets authenticated users subscribe to the Pro tier ($10/month). Three API routes handle checkout session creation, Stripe Billing Portal access, and incoming Stripe webhooks. The webhook handler verifies signatures, processes subscription lifecycle events, and writes to a new Supabase subscriptions table (added via migration with RLS). A 7-day grace period is applied on payment failure: users in past_due status retain Pro access until grace_period_end. The subscription.ts library exposes a getUserSubscription helper returning a typed status (free/pro/grace) for use in any server component or API route. Required env vars: STRIPE_SECRET_KEY, STRIPE_PRO_PRICE_ID, STRIPE_WEBHOOK_SECRET, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_APP_URL. No breaking changes; multiple tiers and annual billing are out of scope."
+}
