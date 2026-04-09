@@ -1,0 +1,12 @@
+{
+  "schema": "cofabric.task_status.v1",
+  "task_number": 7,
+  "title": "Likes and Comments with Content Moderation",
+  "status": "pending",
+  "priority": "medium",
+  "description": "",
+  "completion_summary": null,
+  "pr_url": null,
+  "pr_doc": null,
+  "updated_at": "2026-04-09T18:54:56.591Z"
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "cofabric.task_status.v1",
+  "task_number": 13,
+  "title": "Settings Page and Account Management",
+  "status": "pending",
+  "priority": "low",
+  "description": "",
+  "completion_summary": null,
+  "pr_url": null,
+  "pr_doc": null,
+  "updated_at": "2026-04-09T18:54:59.664Z"
+}
