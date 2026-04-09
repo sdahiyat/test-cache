@@ -1,152 +1,97 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
-import { Clock, BookOpen, CheckSquare, MoreVertical, Edit2 } from 'lucide-react'
-import { SessionWithSubject } from '@/types/database'
-import { cn, formatDuration, formatRelativeTime } from '@/lib/utils'
-import DeleteSessionButton from './DeleteSessionButton'
+import { BookOpen, Clock, CheckSquare, Calendar } from 'lucide-react'
+import { StudySession } from '@/lib/sessions'
 
 interface SessionCardProps {
-  session: SessionWithSubject
-  onDelete?: () => void
+  session: StudySession
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+function formatDuration(minutes: number) {
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (h === 0) return `${m} min`
+  if (m === 0) return `${h}h`
+  return `${h}h ${m}min`
+}
+
+const categoryColors: Record<string, string> = {
   Mathematics: 'bg-blue-100 text-blue-700',
   Science: 'bg-green-100 text-green-700',
-  'Computer Science': 'bg-purple-100 text-purple-700',
-  'Language Arts': 'bg-yellow-100 text-yellow-700',
-  History: 'bg-orange-100 text-orange-700',
-  Geography: 'bg-teal-100 text-teal-700',
-  Arts: 'bg-pink-100 text-pink-700',
-  Music: 'bg-indigo-100 text-indigo-700',
-  'Physical Education': 'bg-red-100 text-red-700',
-  Other: 'bg-gray-100 text-gray-700',
+  Literature: 'bg-purple-100 text-purple-700',
+  History: 'bg-amber-100 text-amber-700',
+  Languages: 'bg-pink-100 text-pink-700',
+  Technology: 'bg-cyan-100 text-cyan-700',
+  Arts: 'bg-orange-100 text-orange-700',
 }
 
-function getCategoryColor(category?: string): string {
-  if (!category) return CATEGORY_COLORS.Other
-  return CATEGORY_COLORS[category] ?? CATEGORY_COLORS.Other
+function getSubjectColor(subjectName: string | null): string {
+  if (!subjectName) return 'bg-gray-100 text-gray-600'
+  for (const [key, value] of Object.entries(categoryColors)) {
+    if (subjectName.toLowerCase().includes(key.toLowerCase())) return value
+  }
+  return 'bg-primary-100 text-primary-700'
 }
 
-const STATUS_CONFIG = {
-  active: { label: 'Active', className: 'bg-green-100 text-green-700', dotClass: 'bg-green-500' },
-  archived: { label: 'Archived', className: 'bg-gray-100 text-gray-600', dotClass: 'bg-gray-400' },
-  completed: { label: 'Completed', className: 'bg-blue-100 text-blue-700', dotClass: 'bg-blue-500' },
-}
-
-export default function SessionCard({ session, onDelete }: SessionCardProps) {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const status = STATUS_CONFIG[session.status] ?? STATUS_CONFIG.active
-
+export default function SessionCard({ session }: SessionCardProps) {
   return (
-    <div className="relative group bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all duration-200">
-      <Link href={`/sessions/${session.id}`} className="block p-6">
+    <Link href={`/sessions/${session.id}`} className="block group">
+      <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md hover:border-primary-200 transition-all duration-200 h-full flex flex-col">
         {/* Header */}
-        <div className="flex items-start justify-between mb-3 pr-8">
-          <h3 className="font-semibold text-gray-900 text-base leading-tight line-clamp-2 group-hover:text-primary-600 transition-colors">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <h3 className="text-base font-semibold text-gray-900 group-hover:text-primary-700 transition-colors line-clamp-2 flex-1">
             {session.name}
           </h3>
-        </div>
-
-        {/* Badges row */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          {/* Subject badge */}
-          {session.subject && (
-            <span
-              className={cn(
-                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
-                getCategoryColor(session.subject.category)
-              )}
-            >
-              <BookOpen className="h-3 w-3" />
-              {session.subject.name}
-            </span>
-          )}
-
-          {/* Duration badge */}
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-            <Clock className="h-3 w-3" />
-            {formatDuration(session.duration_minutes)}
-          </span>
-
-          {/* Tasks badge */}
-          {session.tasks.length > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-              <CheckSquare className="h-3 w-3" />
-              {session.tasks.length} task{session.tasks.length !== 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400">
-            {formatRelativeTime(session.created_at)}
-          </span>
-
-          {/* Status indicator */}
           <span
-            className={cn(
-              'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium',
-              status.className
-            )}
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${
+              session.status === 'active'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-gray-100 text-gray-600'
+            }`}
           >
-            <span className={cn('w-1.5 h-1.5 rounded-full', status.dotClass)} />
-            {status.label}
+            {session.status}
           </span>
         </div>
-      </Link>
 
-      {/* Action menu (visible on hover) */}
-      <div className="absolute top-4 right-4">
-        <button
-          onClick={(e) => {
-            e.preventDefault()
-            setMenuOpen((prev) => !prev)
-          }}
-          className={cn(
-            'p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100',
-            'transition-all duration-150',
-            menuOpen ? 'opacity-100 bg-gray-100' : 'opacity-0 group-hover:opacity-100'
-          )}
-          type="button"
-          aria-label="Session actions"
-        >
-          <MoreVertical className="h-4 w-4" />
-        </button>
-
-        {menuOpen && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setMenuOpen(false)}
-            />
-            <div className="absolute right-0 top-8 z-20 bg-white border border-gray-200 rounded-lg shadow-lg py-1 w-36 animate-in fade-in slide-in-from-top-1">
-              <Link
-                href={`/sessions/${session.id}/edit`}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                onClick={() => setMenuOpen(false)}
-              >
-                <Edit2 className="h-3.5 w-3.5" />
-                Edit
-              </Link>
-              <div className="px-3 py-1">
-                <DeleteSessionButton
-                  sessionId={session.id}
-                  sessionName={session.name}
-                  onDelete={() => {
-                    setMenuOpen(false)
-                    onDelete?.()
-                  }}
-                  className="w-full text-left"
-                />
-              </div>
-            </div>
-          </>
+        {/* Subject badge */}
+        {session.subject_name && (
+          <div className="flex items-center gap-1.5 mb-3">
+            <BookOpen className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${getSubjectColor(
+                session.subject_name
+              )}`}
+            >
+              {session.subject_name}
+            </span>
+          </div>
         )}
+
+        {/* Stats */}
+        <div className="flex items-center gap-4 mt-auto pt-3 border-t border-gray-100">
+          <div className="flex items-center gap-1 text-gray-500 text-xs">
+            <Clock className="h-3.5 w-3.5" />
+            <span>{formatDuration(session.duration_minutes)}</span>
+          </div>
+          <div className="flex items-center gap-1 text-gray-500 text-xs">
+            <CheckSquare className="h-3.5 w-3.5" />
+            <span>{session.tasks.length} task{session.tasks.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="flex items-center gap-1 text-gray-500 text-xs ml-auto">
+            <Calendar className="h-3.5 w-3.5" />
+            <span>{formatDate(session.created_at)}</span>
+          </div>
+        </div>
       </div>
-    </div>
+    </Link>
   )
 }
