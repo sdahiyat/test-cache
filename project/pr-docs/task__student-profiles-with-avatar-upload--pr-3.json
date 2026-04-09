@@ -1,0 +1,55 @@
+{
+  "overview": "This PR implements a student profile system with avatar upload support. It adds a Supabase-backed profiles table, API routes for profile CRUD and avatar management, public profile pages at /user/[username], and a settings edit form. Constraints enforced include username uniqueness (case-insensitive), 30-day username change cooldown, 300-char bio limit, and 2MB avatar size cap.",
+  "summary_json": {
+    "New routes": "GET/PATCH /api/profile, POST /api/profile/avatar, GET /api/profile/[username]",
+    "New pages": "/user/[username] (public profile), /settings (profile edit)",
+    "Required env vars": "NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (implied)",
+    "Storage bucket": "Supabase Storage used for avatar uploads (avatars bucket expected)",
+    "Avatar constraints": "JPEG, PNG, WebP, GIF only; max 2MB",
+    "Username rules": "Case-insensitive unique index; changes locked for 30 days after last update",
+    "Bio limit": "300 characters, enforced at DB level via CHECK constraint",
+    "Stats aggregated": "study_hours, tasks_completed, followers_count, following_count, sessions_count",
+    "Out of scope": "Follow/unfollow functionality, feed integration",
+    "Migration": "supabase/migrations/001_profiles.sql — apply via Supabase Dashboard, CLI, or psql"
+  },
+  "files_changed": [
+    {
+      "path": "supabase/migrations/001_profiles.sql",
+      "summary": "Creates the profiles table with constraints, case-insensitive unique username index, and supporting indexes for user_id and username lookups."
+    },
+    {
+      "path": "src/lib/supabase.ts",
+      "summary": "Initialises browser singleton and server Supabase clients with env-var validation; exports createClientComponentClient and createServerComponentClient."
+    },
+    {
+      "path": "src/lib/utils.ts",
+      "summary": "Adds shared utility helpers: cn (Tailwind merge), formatDuration, formatCount, daysUntil, and (inferred) isValidUsername/canChangeUsername/getInitials."
+    },
+    {
+      "path": "src/types/database.ts",
+      "summary": "Defines Profile, ProfileStats, StudyFocus enum, STUDY_FOCUS_OPTIONS constant, and input types for profile mutations."
+    },
+    {
+      "path": "src/app/api/profile/route.ts",
+      "summary": "GET returns the authenticated user's own profile; PATCH updates profile fields with username-change cooldown and uniqueness validation."
+    },
+    {
+      "path": "src/app/api/profile/avatar/route.ts",
+      "summary": "POST endpoint that validates MIME type and file size, uploads avatar to Supabase Storage, and updates the profile's avatar_url."
+    },
+    {
+      "path": "src/app/api/profile/[username]/route.ts",
+      "summary": "Public GET endpoint that fetches a profile by username (case-insensitive) and returns it with aggregated stats."
+    },
+    {
+      "path": "src/components/profile/ProfileCard.tsx",
+      "summary": "Read-only display card showing avatar (with initials fallback), bio, study focus badge with colour coding, and formatted stat counts."
+    },
+    {
+      "path": "src/components/profile/ProfileEditForm.tsx",
+      "summary": "Client-side form for editing display name, username, bio, study focus, and uploading a new avatar with live validation feedback."
+    }
+  ],
+  "extras": "Verify: apply 001_profiles.sql migration before deploying; confirm avatars storage bucket exists and RLS policies allow authenticated uploads. Follow-ups: add RLS policies for profiles table in migration, implement follow/unfollow (explicitly out of scope here), expand Database type in supabase.ts once schema stabilises.",
+  "fallback_text": "PR #3 adds a full student profile system. A new Supabase migration creates the profiles table with case-insensitive unique username indexing, a 300-char bio CHECK, and a username_updated_at column for the 30-day change lock. Three API routes are added: GET/PATCH /api/profile (authenticated own-profile), POST /api/profile/avatar (2MB max, JPEG/PNG/WebP/GIF), and public GET /api/profile/[username] with aggregated stats. The supabase.ts client module now exports browser and server clients with env validation. Shared utils cover Tailwind class merging, duration/count formatting, and username validation helpers. Two profile UI components are included: a read-only ProfileCard with avatar/initials fallback and focus-area colour badges, and a client-side ProfileEditForm with live validation. Env vars required: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (plus service role key server-side). Follow/unfollow and feed integration are explicitly out of scope."
+}
