@@ -1,0 +1,53 @@
+{
+  "overview": "This PR ships the /settings page for StudySync with four tabbed sections: Profile editing, Subscription management, Preferences (study focus + timezone), and Account (sign-out + deletion). The server component fetches profile and subscription data from Supabase and redirects unauthenticated users, while client components handle all interactive flows including a Stripe billing portal redirect and a confirmed account-deletion modal.",
+  "summary_json": {
+    "New route": "/settings (server-rendered, auth-gated)",
+    "Tabs": "profile, subscription, preferences, account",
+    "API routes added": "POST /api/stripe/portal, POST /api/account/delete",
+    "Env keys required": "NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, STRIPE_SECRET_KEY",
+    "Supabase tables read": "profiles, subscriptions",
+    "Stripe API version": "2023-10-16",
+    "Out of scope": "Notification preferences (deferred from MVP)",
+    "Breaking changes": "None noted"
+  },
+  "files_changed": [
+    {
+      "path": "src/types/settings.ts",
+      "summary": "Defines ProfileData, SubscriptionData interfaces and SettingsTab union type used across the feature."
+    },
+    {
+      "path": "src/app/settings/loading.tsx",
+      "summary": "Skeleton loading UI with animated pulse placeholders for the sidebar and main content area."
+    },
+    {
+      "path": "src/app/settings/page.tsx",
+      "summary": "Server component that authenticates the user, fetches profile and subscription from Supabase, and passes data to the client shell."
+    },
+    {
+      "path": "src/app/settings/SettingsPageClient.tsx",
+      "summary": "Client shell rendering the sidebar tab navigation and conditionally rendering the active section component."
+    },
+    {
+      "path": "src/app/settings/components/ProfileSection.tsx",
+      "summary": "Handles display name, bio, and avatar editing with file upload preview and save feedback."
+    },
+    {
+      "path": "src/app/settings/components/SubscriptionSection.tsx",
+      "summary": "Shows current plan status, next billing date, and routes users to the Stripe billing portal for upgrades or cancellation."
+    },
+    {
+      "path": "src/app/settings/components/PreferencesSection.tsx",
+      "summary": "Lets users update study focus and timezone, persisting changes to the profiles table."
+    },
+    {
+      "path": "src/app/settings/components/AccountSection.tsx",
+      "summary": "Provides sign-out and a username-confirmed deletion modal that calls /api/account/delete then redirects."
+    },
+    {
+      "path": "src/app/api/stripe/portal/route.ts",
+      "summary": "POST endpoint that looks up the user's Stripe customer ID and returns a Stripe billing portal session URL."
+    }
+  ],
+  "extras": "Verify: confirm STRIPE_SECRET_KEY is set in all environments; test portal redirect for both free (no stripe_customer_id) and pro users; validate account deletion clears all user data server-side. Follow-up: /api/account/delete implementation was omitted from preview — confirm it revokes Supabase auth and cascades DB deletes. Additional files beyond index 9 were truncated by cap; review omitted files before merge.",
+  "fallback_text": "PR #8 adds a full /settings page at the route /settings with four tabs: Profile, Subscription, Preferences, and Account. The page is server-rendered, fetches profile and subscription rows from Supabase, and redirects unauthenticated users to /login. Client components cover avatar upload, display name and bio edits, study focus and timezone preferences, Stripe billing portal access (via new POST /api/stripe/portal), and account deletion with username confirmation (via POST /api/account/delete). New types live in src/types/settings.ts. Required env vars are NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and STRIPE_SECRET_KEY. No breaking changes; notification preferences are explicitly out of scope for MVP."
+}
