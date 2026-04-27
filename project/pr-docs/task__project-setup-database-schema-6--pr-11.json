@@ -1,0 +1,43 @@
+{
+  "overview": "This PR sets up the Next.js 14 project foundation for StudySync: it installs all external service dependencies (Supabase, OpenAI, Stripe, Tailwind, Lucide), wires environment variables, and creates the full Supabase database schema with 7 tables, foreign keys, indexes, and RLS policies. Client and server-side Supabase utilities are also scaffolded. No feature UI or business logic is included.",
+  "summary_json": {
+    "Tables created": "users, study_sessions, study_logs, subjects, follows, comments, likes",
+    "Security": "Row-level security (RLS) policies on all 7 tables enforcing ownership and visibility",
+    "Env vars (public)": "NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "Env vars (secret)": "SUPABASE_SERVICE_ROLE_KEY, OPENAI_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET",
+    "Migration apply options": "supabase db push (CLI) or paste into Supabase Dashboard SQL editor",
+    "Breaking changes": "None; greenfield setup"
+  },
+  "files_changed": [
+    {
+      "path": "src/types/database.ts",
+      "summary": "Defines TypeScript interfaces for all 7 database entities (User, StudySession, StudyLog, Subject, Follow, Comment, Like)."
+    },
+    {
+      "path": "src/types/index.ts",
+      "summary": "Barrel re-export for database types."
+    },
+    {
+      "path": "src/lib/supabase/client.ts",
+      "summary": "Singleton browser-side Supabase client using NEXT_PUBLIC_ keys with env-var guards."
+    },
+    {
+      "path": "src/lib/supabase/server.ts",
+      "summary": "Server-side Supabase helpers: createAdminClient (service role, bypasses RLS) and createServerSupabaseClient (anon key for user-scoped queries)."
+    },
+    {
+      "path": "src/lib/supabase/index.ts",
+      "summary": "Barrel re-export for all Supabase client utilities."
+    },
+    {
+      "path": "supabase/migrations/001_initial_schema.sql",
+      "summary": "Full initial migration: creates all 7 tables with UUID PKs, foreign keys, indexes, and RLS policies via uuid-ossp extension."
+    },
+    {
+      "path": ".env.example",
+      "summary": "Documents all required environment variables for Supabase, OpenAI, and Stripe with instructions for each."
+    }
+  ],
+  "extras": "Verify: run `supabase db push` against a dev project and confirm all 7 tables appear with RLS enabled. Risk: SUPABASE_SERVICE_ROLE_KEY must never be exposed client-side; server.ts guards this but review any future Server Actions that import from src/lib/supabase.",
+  "fallback_text": "PR #11 initializes the StudySync Next.js 14 project. It scaffolds TypeScript types for 7 Supabase tables (users, study_sessions, study_logs, subjects, follows, comments, likes), adds browser and server Supabase client utilities (with singleton pattern and env-var validation), and ships a SQL migration (001_initial_schema.sql) that creates all tables with foreign keys, indexes, and row-level security policies. An .env.example documents public and secret keys for Supabase, OpenAI, and Stripe. No UI or feature logic is included."
+}
