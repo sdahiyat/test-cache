@@ -1,12 +1,12 @@
 {
   "schema": "cofabric.task_status.v1",
   "task_number": 4,
-  "title": "Study Session CRUD with Tier-Based Limits",
+  "title": "Subject & Task Library",
   "status": "pending",
-  "priority": "high",
+  "priority": "medium",
   "description": "",
   "completion_summary": null,
   "pr_url": null,
   "pr_doc": null,
-  "updated_at": "2026-04-09T18:54:55.170Z"
+  "updated_at": "2026-04-27T17:48:09.382Z"
 }

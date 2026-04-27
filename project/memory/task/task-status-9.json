@@ -1,12 +1,12 @@
 {
   "schema": "cofabric.task_status.v1",
   "task_number": 9,
-  "title": "AI Study Plan Generator",
+  "title": "Social Features - Likes & Comments",
   "status": "pending",
   "priority": "medium",
   "description": "",
   "completion_summary": null,
   "pr_url": null,
   "pr_doc": null,
-  "updated_at": "2026-04-09T18:54:57.601Z"
+  "updated_at": "2026-04-27T17:48:11.786Z"
 }

@@ -1,12 +1,12 @@
 {
   "schema": "cofabric.task_status.v1",
   "task_number": 5,
-  "title": "Study Logging and Progress Visualization",
+  "title": "Study Session Management",
   "status": "pending",
-  "priority": "medium",
+  "priority": "high",
   "description": "",
   "completion_summary": null,
   "pr_url": null,
   "pr_doc": null,
-  "updated_at": "2026-04-09T18:54:55.727Z"
+  "updated_at": "2026-04-27T17:48:09.896Z"
 }

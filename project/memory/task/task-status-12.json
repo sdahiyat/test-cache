@@ -1,12 +1,12 @@
 {
   "schema": "cofabric.task_status.v1",
   "task_number": 12,
-  "title": "Dashboard and Core Page Layouts",
+  "title": "Content Moderation System",
   "status": "pending",
   "priority": "medium",
   "description": "",
   "completion_summary": null,
   "pr_url": null,
   "pr_doc": null,
-  "updated_at": "2026-04-09T18:54:59.268Z"
+  "updated_at": "2026-04-27T17:48:13.147Z"
 }

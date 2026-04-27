@@ -1,12 +1,12 @@
 {
   "schema": "cofabric.task_status.v1",
   "task_number": 2,
-  "title": "Supabase Client Setup and Authentication System",
+  "title": "Authentication & User Profiles",
   "status": "pending",
   "priority": "high",
   "description": "",
   "completion_summary": null,
   "pr_url": null,
   "pr_doc": null,
-  "updated_at": "2026-04-09T18:54:54.245Z"
+  "updated_at": "2026-04-27T17:48:08.440Z"
 }

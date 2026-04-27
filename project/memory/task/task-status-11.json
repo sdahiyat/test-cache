@@ -1,12 +1,12 @@
 {
   "schema": "cofabric.task_status.v1",
   "task_number": 11,
-  "title": "Search System for Users and Subjects",
+  "title": "AI Learning Suggestions",
   "status": "pending",
-  "priority": "low",
+  "priority": "medium",
   "description": "",
   "completion_summary": null,
   "pr_url": null,
   "pr_doc": null,
-  "updated_at": "2026-04-09T18:54:58.622Z"
+  "updated_at": "2026-04-27T17:48:12.711Z"
 }
