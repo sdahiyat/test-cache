@@ -1,0 +1,64 @@
+{
+  "overview": "Bootstraps the StudySync Next.js 14 project with all third-party dependencies (Supabase, OpenAI, Stripe, Tailwind, Lucide) and a complete Supabase database schema. Includes 7 tables with foreign keys, RLS policies enforcing ownership and visibility, and helper triggers for user mirroring and timestamp management. Supabase client utilities are wired for browser, server, middleware, and admin (service-role) contexts.",
+  "summary_json": {
+    "Tables created": "users, subjects, study_sessions, study_logs, follows, comments, likes",
+    "RLS enabled": "All 7 tables; ownership via auth.uid(), public profiles via users.is_public",
+    "Triggers": "on_auth_user_created (mirrors auth.users), set_*_updated_at, duration_seconds derivation",
+    "Supabase clients": "browser (client.ts), server (server.ts), middleware (middleware.ts), admin/service-role (admin.ts)",
+    "Env vars required": "NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, plus OpenAI and Stripe keys",
+    "Next.js version": "14.2",
+    "Breaking changes": "None; no UI or feature code included"
+  },
+  "files_changed": [
+    {
+      "path": "project/.gitignore",
+      "summary": "Standard Next.js gitignore extended with Supabase branch/temp dirs and IDE folders."
+    },
+    {
+      "path": "project/package.json",
+      "summary": "Defines all runtime and dev dependencies including next 14, @supabase/ssr, openai, stripe, tailwindcss, and lucide-react."
+    },
+    {
+      "path": "project/src/lib/supabase/admin.ts",
+      "summary": "Server-only Supabase client using the service-role key that bypasses RLS; must never be imported in client components."
+    },
+    {
+      "path": "project/src/lib/supabase/client.ts",
+      "summary": "Browser-side Supabase client using createBrowserClient from @supabase/ssr with the public anon key."
+    },
+    {
+      "path": "project/src/lib/supabase/middleware.ts",
+      "summary": "Middleware-scoped Supabase client that reads/writes cookies on both the request and response to keep the auth session fresh."
+    },
+    {
+      "path": "project/src/lib/supabase/server.ts",
+      "summary": "Async server-side Supabase client using Next.js cookies(); silently swallows cookie-set errors in Server Components."
+    },
+    {
+      "path": "project/src/lib/supabase/types.ts",
+      "summary": "Generated TypeScript Database type covering all 7 tables with Row, Insert, and Update shapes."
+    },
+    {
+      "path": "project/src/middleware.ts",
+      "summary": "Next.js middleware entry point that calls supabase.auth.getUser() on every non-static request to refresh session cookies."
+    },
+    {
+      "path": "project/supabase/config.toml",
+      "summary": "Local Supabase config: API on 54321, DB on 54322, Studio on 54323, email auth enabled with double-confirm, analytics off."
+    },
+    {
+      "path": "project/supabase/migrations/001_initial_schema.sql",
+      "summary": "Creates all 7 tables with UUID PKs, foreign keys (cascade/set-null), and indexes; enables pgcrypto extension."
+    },
+    {
+      "path": "project/supabase/migrations/002_rls_policies.sql",
+      "summary": "Enables RLS on all tables and adds per-table select/insert/update/delete policies using auth.uid() and is_public checks."
+    },
+    {
+      "path": "project/supabase/migrations/003_functions_triggers.sql",
+      "summary": "Adds triggers to mirror new auth users into public.users, keep updated_at fresh, and derive duration_seconds from session times."
+    }
+  ],
+  "extras": "Verify by running `supabase db reset` locally and confirming all 3 migrations apply cleanly; confirm supabaseAdmin is never bundled client-side via Next.js bundle analysis. Follow-up: add OPENAI_API_KEY and STRIPE_SECRET_KEY to env docs; consider seeding script for local dev.",
+  "fallback_text": "This PR sets up the StudySync Next.js 14 project from scratch. It installs all dependencies (Supabase SSR, OpenAI, Stripe, Tailwind, Lucide), creates a 3-migration Supabase schema with 7 tables (users, subjects, study_sessions, study_logs, follows, comments, likes), RLS policies on all tables, and triggers for user mirroring and timestamp updates. Four Supabase client helpers are added for browser, server, middleware, and service-role (admin) usage. Required env vars are NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY. No UI or feature code is included."
+}
